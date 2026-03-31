@@ -1,0 +1,956 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aim Trainer Pro</title>
+  <style>
+    :root {
+      --bg: #081018;
+      --panel: rgba(10, 16, 24, 0.88);
+      --panel-2: rgba(16, 24, 36, 0.92);
+      --text: #eaf2ff;
+      --muted: #8aa0b8;
+      --accent: #5fe3ff;
+      --accent-2: #7cff88;
+      --danger: #ff6b6b;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --border: rgba(255,255,255,.08);
+    }* { box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; margin: 0; overflow: hidden;
+  background: radial-gradient(circle at 50% 20%, #101c2d 0%, var(--bg) 55%, #03060a 100%);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  user-select: none;
+  touch-action: none;
+}
+
+#app {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.topbar, .bottombar {
+  pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.topbar {
+  align-items: flex-start;
+}
+
+.brand, .stats, .hint, .panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+}
+
+.brand {
+  padding: 12px 14px;
+  min-width: 240px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: .4px;
+}
+
+.brand p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(92px, auto));
+  gap: 10px;
+  padding: 10px 12px;
+  align-items: center;
+}
+
+.stat {
+  min-width: 92px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid rgba(255,255,255,.05);
+}
+
+.stat .label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.stat .value {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.hint {
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  max-width: 520px;
+}
+
+#gameWrap {
+  position: relative;
+  margin: 0 12px;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at center, rgba(95,227,255,.08) 0%, transparent 22%),
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), var(--shadow);
+}
+
+canvas {
+  display: block;
+  width: 100%; height: 100%;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+.overlay {
+  position: absolute; inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: linear-gradient(180deg, rgba(4,8,12,.64), rgba(4,8,12,.25));
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1.01);
+}
+
+.panel {
+  width: min(560px, 96vw);
+  padding: 22px;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.panel p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.card {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.07);
+}
+
+.card .big {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.card .small {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+button {
+  appearance: none;
+  border: 0;
+  background: linear-gradient(180deg, #163248, #102133);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 8px 20px rgba(0,0,0,.22);
+}
+
+button:hover { filter: brightness(1.08); }
+button.primary {
+  background: linear-gradient(180deg, #2b6d7c, #194b57);
+  border-color: rgba(95,227,255,.25);
+}
+button.good {
+  background: linear-gradient(180deg, #295c3a, #183922);
+  border-color: rgba(124,255,136,.2);
+}
+button.danger {
+  background: linear-gradient(180deg, #6b2b33, #411820);
+  border-color: rgba(255,107,107,.2);
+}
+
+.footerNote {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.crosshair {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 34px; height: 34px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: .95;
+  filter: drop-shadow(0 0 8px rgba(95,227,255,.45));
+}
+.crosshair::before, .crosshair::after {
+  content: "";
+  position: absolute;
+  background: rgba(95,227,255,.9);
+  border-radius: 3px;
+}
+.crosshair::before {
+  left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%);
+}
+.crosshair::after {
+  top: 50%; left: 0; width: 100%; height: 2px; transform: translateY(-50%);
+}
+.crosshair i {
+  position: absolute; inset: 11px;
+  border: 2px solid rgba(95,227,255,.85);
+  border-radius: 50%;
+}
+
+.bottom-left, .bottom-right {
+  pointer-events: none;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.pill {
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  box-shadow: var(--shadow);
+}
+
+.pulse {
+  animation: pulse .12s ease-out;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  to { transform: scale(1); }
+}
+
+@media (max-width: 900px) {
+  .topbar, .bottombar { flex-direction: column; align-items: stretch; }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .brand { min-width: unset; }
+  .hint { max-width: unset; }
+  .grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto; }
+  .pulse { animation: none; }
+  .overlay { transition: none; }
+}
+
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="topbar">
+      <div class="brand">
+        <h1>Aim Trainer Pro</h1>
+        <p>Fast, lightweight target practice for flicks, tracking, and reaction speed.</p>
+      </div>
+      <div class="stats" id="stats">
+        <div class="stat"><span class="label">Score</span><span class="value" id="score">0</span></div>
+        <div class="stat"><span class="label">Combo</span><span class="value" id="combo">0</span></div>
+        <div class="stat"><span class="label">Accuracy</span><span class="value" id="acc">100%</span></div>
+        <div class="stat"><span class="label">Level</span><span class="value" id="level">1</span></div>
+        <div class="stat"><span class="label">Time</span><span class="value" id="time">60.0s</span></div>
+        <div class="stat"><span class="label">Best</span><span class="value" id="best">0</span></div>
+      </div>
+    </div><div id="gameWrap">
+  <canvas id="game"></canvas>
+  <div class="crosshair" id="crosshair"><i></i></div>
+
+  <div class="overlay" id="overlay">
+    <div class="panel">
+      <h2 id="title">Ready to train?</h2>
+      <p id="desc">Hit targets as quickly and accurately as possible. Headshot-style bonus zones, combo scoring, increasing difficulty, and clean performance for low-spec machines.</p>
+      <div class="grid">
+        <div class="card"><div class="big">60s</div><div class="small">Timed run</div></div>
+        <div class="card"><div class="big">4 Modes</div><div class="small">Static, flick, tracking, mixed</div></div>
+        <div class="card"><div class="big">No Lag</div><div class="small">Canvas-based, simple physics</div></div>
+      </div>
+      <div class="controls">
+        <button class="primary" id="startBtn">Start Training</button>
+        <button id="modeBtn">Mode: Mixed</button>
+        <button id="soundBtn">Sound: On</button>
+        <button class="danger" id="resetBtn">Reset Best</button>
+      </div>
+      <div class="footerNote">Controls: mouse, touch, or stylus. Press Space to start/pause, R to restart, M to change mode.</div>
+    </div>
+  </div>
+</div>
+
+<div class="bottombar">
+  <div class="bottom-left">
+    <div class="pill" id="statusPill">Idle</div>
+    <div class="pill" id="modePill">Mixed</div>
+  </div>
+  <div class="bottom-right">
+    <div class="pill">Tip: small, fast snaps earn more combo points.</div>
+  </div>
+</div>
+
+  </div>  <script>
+    (() => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+      const overlay = document.getElementById('overlay');
+      const title = document.getElementById('title');
+      const desc = document.getElementById('desc');
+      const scoreEl = document.getElementById('score');
+      const comboEl = document.getElementById('combo');
+      const accEl = document.getElementById('acc');
+      const levelEl = document.getElementById('level');
+      const timeEl = document.getElementById('time');
+      const bestEl = document.getElementById('best');
+      const statusPill = document.getElementById('statusPill');
+      const modePill = document.getElementById('modePill');
+      const startBtn = document.getElementById('startBtn');
+      const modeBtn = document.getElementById('modeBtn');
+      const soundBtn = document.getElementById('soundBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const gameWrap = document.getElementById('gameWrap');
+      const crosshair = document.getElementById('crosshair');
+
+      const MODES = ['Mixed', 'Static', 'Flick', 'Tracking'];
+      let modeIndex = 0;
+      let soundOn = true;
+      let running = false;
+      let paused = false;
+      let ended = false;
+      let lastTs = 0;
+      let rafId = 0;
+      let spawnTimer = 0;
+      let spawnInterval = 900;
+      let level = 1;
+      let timeLeft = 60;
+      let score = 0;
+      let combo = 0;
+      let shots = 0;
+      let hits = 0;
+      let best = Number(localStorage.getItem('aimTrainerBest') || 0);
+      let dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      let cw = 0, ch = 0;
+      let pointerX = 0, pointerY = 0;
+      let pointerInside = false;
+      let spawnPool = [];
+      let targets = [];
+      let particles = [];
+      let floatText = [];
+      let shake = 0;
+      let musicUnlocked = false;
+      let audioCtx = null;
+
+      const pointer = { x: 0, y: 0 };
+
+      function resize() {
+        const rect = gameWrap.getBoundingClientRect();
+        cw = Math.max(320, rect.width);
+        ch = Math.max(320, rect.height);
+        canvas.width = Math.floor(cw * dpr);
+        canvas.height = Math.floor(ch * dpr);
+        canvas.style.width = cw + 'px';
+        canvas.style.height = ch + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function rnd(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+
+      function dist(ax, ay, bx, by) {
+        const dx = ax - bx, dy = ay - by;
+        return Math.hypot(dx, dy);
+      }
+
+      function setupAudio() {
+        if (musicUnlocked) return;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          musicUnlocked = true;
+        } catch (_) {
+          musicUnlocked = false;
+        }
+      }
+
+      function beep(type) {
+        if (!soundOn || !musicUnlocked || !audioCtx) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        osc.type = type === 'hit' ? 'triangle' : type === 'miss' ? 'sine' : 'square';
+        osc.frequency.setValueAtTime(type === 'hit' ? 740 : type === 'miss' ? 180 : 520, now);
+        osc.frequency.exponentialRampToValueAtTime(type === 'hit' ? 1200 : type === 'miss' ? 120 : 680, now + 0.08);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.exponentialRampToValueAtTime(type === 'hit' ? 0.07 : 0.04, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + (type === 'hit' ? 0.12 : 0.18));
+        filter.type = 'lowpass';
+        filter.frequency.value = type === 'hit' ? 1800 : 700;
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+
+      function setStatus(text) {
+        statusPill.textContent = text;
+      }
+
+      function updateUI() {
+        scoreEl.textContent = Math.floor(score).toString();
+        comboEl.textContent = combo.toString();
+        accEl.textContent = shots ? Math.round((hits / shots) * 100) + '%' : '100%';
+        levelEl.textContent = level.toString();
+        timeEl.textContent = timeLeft.toFixed(1) + 's';
+        bestEl.textContent = best.toString();
+        modePill.textContent = MODES[modeIndex];
+        modeBtn.textContent = 'Mode: ' + MODES[modeIndex];
+        soundBtn.textContent = 'Sound: ' + (soundOn ? 'On' : 'Off');
+      }
+
+      function spawnTarget(forceType) {
+        const baseSize = clamp(48 - level * 2, 22, 48);
+        const size = rnd(baseSize * 0.8, baseSize * 1.25);
+        const margin = size + 18;
+        const x = rnd(margin, cw - margin);
+        const y = rnd(margin, ch - margin);
+        const type = forceType || pickMode();
+        const ttl = type === 'tracking' ? rnd(2.2, 3.5) : rnd(1.1, 2.5);
+        const target = {
+          x, y,
+          ox: x, oy: y,
+          vx: 0, vy: 0,
+          size,
+          life: ttl,
+          maxLife: ttl,
+          type,
+          hits: 0,
+          pulse: 0,
+          driftAngle: rnd(0, Math.PI * 2),
+          driftSpeed: rnd(0.25, 1.1) * (0.5 + level / 10),
+          worth: type === 'small' ? 25 : type === 'big' ? 15 : type === 'tracking' ? 20 : 18
+        };
+
+        if (type === 'static') {
+          target.worth = 20;
+        } else if (type === 'flick') {
+          target.vx = rnd(-230, 230);
+          target.vy = rnd(-230, 230);
+          target.worth = 28;
+        } else if (type === 'tracking') {
+          target.worth = 32;
+        } else if (type === 'moving') {
+          target.vx = rnd(-150, 150);
+          target.vy = rnd(-150, 150);
+          target.worth = 24;
+        }
+
+        targets.push(target);
+      }
+
+      function pickMode() {
+        const m = MODES[modeIndex];
+        if (m === 'Static') return 'static';
+        if (m === 'Flick') return 'flick';
+        if (m === 'Tracking') return 'tracking';
+        const r = Math.random();
+        if (r < 0.42) return 'static';
+        if (r < 0.7) return 'flick';
+        return 'tracking';
+      }
+
+      function addParticles(x, y, color = '95,227,255') {
+        const count = 10;
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x, y,
+            vx: rnd(-170, 170),
+            vy: rnd(-170, 170),
+            life: rnd(0.18, 0.38),
+            color
+          });
+        }
+      }
+
+      function addFloatText(x, y, text, color = '#eaf2ff') {
+        floatText.push({ x, y, text, life: 0.9, color });
+      }
+
+      function endGame() {
+        running = false;
+        paused = false;
+        ended = true;
+        cancelAnimationFrame(rafId);
+        const finalScore = Math.floor(score);
+        if (finalScore > best) {
+          best = finalScore;
+          localStorage.setItem('aimTrainerBest', String(best));
+        }
+        updateUI();
+        title.textContent = 'Session complete';
+        desc.textContent = `Final score: ${finalScore}. Accuracy: ${shots ? Math.round((hits / shots) * 100) : 100}%. Try another run to beat your best score.`;
+        startBtn.textContent = 'Play Again';
+        overlay.classList.remove('hidden');
+        setStatus('Finished');
+      }
+
+      function startGame() {
+        setupAudio();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        running = true;
+        paused = false;
+        ended = false;
+        lastTs = performance.now();
+        spawnTimer = 0;
+        spawnInterval = 900;
+        level = 1;
+        timeLeft = 60;
+        score = 0;
+        combo = 0;
+        shots = 0;
+        hits = 0;
+        targets = [];
+        particles = [];
+        floatText = [];
+        shake = 0;
+        overlay.classList.add('hidden');
+        startBtn.textContent = 'Restart';
+        title.textContent = 'Ready to train?';
+        desc.textContent = 'Hit targets as quickly and accurately as possible. Headshot-style bonus zones, combo scoring, increasing difficulty, and clean performance for low-spec machines.';
+        setStatus('Training');
+        updateUI();
+        rafId = requestAnimationFrame(loop);
+        spawnTarget();
+      }
+
+      function togglePause() {
+        if (!running && !ended) {
+          startGame();
+          return;
+        }
+        if (ended) {
+          startGame();
+          return;
+        }
+        paused = !paused;
+        if (paused) {
+          overlay.classList.remove('hidden');
+          title.textContent = 'Paused';
+          desc.textContent = 'Press Space or click Start to continue.';
+          startBtn.textContent = 'Resume';
+          setStatus('Paused');
+          cancelAnimationFrame(rafId);
+        } else {
+          overlay.classList.add('hidden');
+          setStatus('Training');
+          lastTs = performance.now();
+          rafId = requestAnimationFrame(loop);
+        }
+      }
+
+      function restart() {
+        startGame();
+      }
+
+      function cycleMode() {
+        modeIndex = (modeIndex + 1) % MODES.length;
+        updateUI();
+      }
+
+      function toggleSound() {
+        soundOn = !soundOn;
+        updateUI();
+      }
+
+      function resetBest() {
+        best = 0;
+        localStorage.removeItem('aimTrainerBest');
+        updateUI();
+        addFloatText(cw / 2, ch / 2, 'Best reset', '#7cff88');
+      }
+
+      function hitTarget(target, x, y) {
+        const centerDist = dist(x, y, target.x, target.y);
+        const r = target.size * 0.34;
+        const inner = target.size * 0.16;
+        const perfect = centerDist <= inner;
+        const good = centerDist <= r;
+
+        shots++;
+        if (!good) {
+          combo = 0;
+          score = Math.max(0, score - 8);
+          beep('miss');
+          shake = 4;
+          addFloatText(x, y, 'MISS', '#ff6b6b');
+          return false;
+        }
+
+        hits++;
+        combo++;
+        const base = target.worth + Math.min(40, combo * 2);
+        const bonus = perfect ? 30 : good ? 10 : 0;
+        const speedBonus = Math.max(0, Math.round((target.maxLife - target.life) * 10));
+        const gained = base + bonus + speedBonus;
+        score += gained;
+        beep('hit');
+        shake = 2;
+        addParticles(target.x, target.y, perfect ? '124,255,136' : '95,227,255');
+        addFloatText(target.x, target.y - 10, (perfect ? 'HEADSHOT ' : '') + '+' + gained, perfect ? '#7cff88' : '#eaf2ff');
+        return true;
+      }
+
+      function handleShot(clientX, clientY) {
+        if (!running || paused || ended) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (clientX - rect.left) * (cw / rect.width);
+        const y = (clientY - rect.top) * (ch / rect.height);
+        pointer.x = x;
+        pointer.y = y;
+        const index = targets.findIndex(t => dist(x, y, t.x, t.y) <= t.size * 0.48);
+        if (index >= 0) {
+          const t = targets[index];
+          const wasHit = hitTarget(t, x, y);
+          if (wasHit) targets.splice(index, 1);
+        } else {
+          shots++;
+          combo = 0;
+          score = Math.max(0, score - 5);
+          beep('miss');
+          shake = 4;
+          addFloatText(x, y, 'MISS', '#ff6b6b');
+        }
+        updateUI();
+      }
+
+      function updateTargets(dt) {
+        const margin = 18;
+        for (let i = targets.length - 1; i >= 0; i--) {
+          const t = targets[i];
+          t.life -= dt;
+          t.pulse += dt * 8;
+          if (t.type === 'flick' || t.type === 'moving') {
+            t.x += t.vx * dt;
+            t.y += t.vy * dt;
+            if (t.x < t.size + margin || t.x > cw - t.size - margin) t.vx *= -1;
+            if (t.y < t.size + margin || t.y > ch - t.size - margin) t.vy *= -1;
+            t.x = clamp(t.x, t.size + margin, cw - t.size - margin);
+            t.y = clamp(t.y, t.size + margin, ch - t.size - margin);
+          } else if (t.type === 'tracking') {
+            t.driftAngle += dt * t.driftSpeed;
+            t.x += Math.cos(t.driftAngle) * 68 * dt;
+            t.y += Math.sin(t.driftAngle * 1.2) * 56 * dt;
+            t.x = clamp(t.x, t.size + margin, cw - t.size - margin);
+            t.y = clamp(t.y, t.size + margin, ch - t.size - margin);
+          }
+
+          if (t.life <= 0) {
+            targets.splice(i, 1);
+            combo = 0;
+            score = Math.max(0, score - 10);
+            beep('miss');
+            addFloatText(t.x, t.y, 'EXPIRED', '#ff6b6b');
+          }
+        }
+      }
+
+      function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.life -= dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vx *= 0.98;
+          p.vy *= 0.98;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+        for (let i = floatText.length - 1; i >= 0; i--) {
+          const f = floatText[i];
+          f.life -= dt;
+          f.y -= 24 * dt;
+          if (f.life <= 0) floatText.splice(i, 1);
+        }
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = '#081018';
+        ctx.fillRect(0, 0, cw, ch);
+
+        const g = ctx.createRadialGradient(cw / 2, ch / 2, 30, cw / 2, ch / 2, Math.max(cw, ch) * 0.7);
+        g.addColorStop(0, 'rgba(95,227,255,0.08)');
+        g.addColorStop(0.5, 'rgba(7,18,30,0.03)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, cw, ch);
+
+        ctx.save();
+        ctx.globalAlpha = 0.06;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        const step = 64;
+        for (let x = 0; x < cw; x += step) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ch); ctx.stroke();
+        }
+        for (let y = 0; y < ch; y += step) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawTargets() {
+        for (const t of targets) {
+          const lifeRatio = clamp(t.life / t.maxLife, 0, 1);
+          const ring = t.size * (0.85 + 0.05 * Math.sin(t.pulse));
+          const alpha = 0.3 + 0.7 * lifeRatio;
+
+          ctx.save();
+          ctx.globalAlpha = alpha;
+
+          // outer glow
+          const glow = ctx.createRadialGradient(t.x, t.y, 2, t.x, t.y, t.size * 1.5);
+          glow.addColorStop(0, 'rgba(95,227,255,0.32)');
+          glow.addColorStop(1, 'rgba(95,227,255,0)');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, t.size * 1.35, 0, Math.PI * 2);
+          ctx.fill();
+
+          // target body
+          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, t.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          // main rings
+          ctx.lineWidth = Math.max(2, t.size * 0.1);
+          ctx.strokeStyle = 'rgba(95,227,255,0.95)';
+          ctx.beginPath(); ctx.arc(t.x, t.y, ring, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = 'rgba(124,255,136,0.9)';
+          ctx.beginPath(); ctx.arc(t.x, t.y, t.size * 0.58, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.88)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(t.x, t.y, t.size * 0.2, 0, Math.PI * 2); ctx.stroke();
+
+          // life bar
+          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(t.x - t.size, t.y + t.size + 8, t.size * 2, 4);
+          ctx.fillStyle = lifeRatio > 0.35 ? 'rgba(124,255,136,0.95)' : 'rgba(255,107,107,0.95)';
+          ctx.fillRect(t.x - t.size, t.y + t.size + 8, t.size * 2 * lifeRatio, 4);
+
+          ctx.restore();
+        }
+      }
+
+      function drawParticles() {
+        for (const p of particles) {
+          const a = clamp(p.life / 0.38, 0, 1);
+          ctx.globalAlpha = a;
+          ctx.fillStyle = `rgba(${p.color},${a})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawFloatText() {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '700 18px Inter, system-ui, sans-serif';
+        for (const f of floatText) {
+          ctx.globalAlpha = clamp(f.life / 0.9, 0, 1);
+          ctx.fillStyle = f.color;
+          ctx.fillText(f.text, f.x, f.y);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawCrosshair() {
+        const size = 34 + Math.min(10, combo * 0.25);
+        crosshair.style.width = size + 'px';
+        crosshair.style.height = size + 'px';
+      }
+
+      function loop(ts) {
+        if (!running || paused) return;
+        const dt = Math.min(0.032, (ts - lastTs) / 1000 || 0.016);
+        lastTs = ts;
+        timeLeft -= dt;
+        if (timeLeft <= 0) timeLeft = 0;
+
+        spawnTimer += dt * 1000;
+        const maxOnScreen = clamp(2 + Math.floor(level / 2), 2, 6);
+        spawnInterval = clamp(900 - level * 60, 380, 900);
+        if (targets.length < maxOnScreen && spawnTimer >= spawnInterval) {
+          spawnTimer = 0;
+          spawnTarget();
+        }
+
+        if (timeLeft <= 0) {
+          drawFrame();
+          updateUI();
+          endGame();
+          return;
+        }
+
+        const oldLevel = level;
+        level = 1 + Math.floor((60 - timeLeft) / 10) + Math.floor(combo / 12);
+        if (level !== oldLevel) setStatus('Level ' + level);
+
+        updateTargets(dt);
+        updateParticles(dt);
+        drawFrame();
+        score += dt * (combo > 0 ? combo * 0.5 : 0);
+        updateUI();
+        rafId = requestAnimationFrame(loop);
+      }
+
+      function drawFrame() {
+        ctx.save();
+        if (shake > 0) {
+          ctx.translate(rnd(-shake, shake), rnd(-shake, shake));
+          shake *= 0.82;
+        }
+        drawBackground();
+        drawTargets();
+        drawParticles();
+        drawFloatText();
+        ctx.restore();
+        drawCrosshair();
+      }
+
+      // events
+      window.addEventListener('resize', resize, { passive: true });
+      canvas.addEventListener('pointerdown', (e) => {
+        setupAudio();
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        handleShot(e.clientX, e.clientY);
+      }, { passive: true });
+
+      canvas.addEventListener('pointermove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        pointer.x = (e.clientX - rect.left) * (cw / rect.width);
+        pointer.y = (e.clientY - rect.top) * (ch / rect.height);
+        const cx = e.clientX - rect.left;
+        const cy = e.clientY - rect.top;
+        crosshair.style.left = cx + 'px';
+        crosshair.style.top = cy + 'px';
+        pointerInside = true;
+      }, { passive: true });
+
+      canvas.addEventListener('pointerleave', () => {
+        pointerInside = false;
+        crosshair.style.left = '50%';
+        crosshair.style.top = '50%';
+      }, { passive: true });
+
+      canvas.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches[0]) {
+          const t = e.touches[0];
+          handleShot(t.clientX, t.clientY);
+        }
+      }, { passive: true });
+
+      startBtn.addEventListener('click', () => {
+        if (!running || ended) startGame(); else togglePause();
+      });
+      modeBtn.addEventListener('click', () => {
+        cycleMode();
+      });
+      soundBtn.addEventListener('click', () => {
+        toggleSound();
+      });
+      resetBtn.addEventListener('click', () => {
+        resetBest();
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          togglePause();
+        } else if (e.key.toLowerCase() === 'r') {
+          restart();
+        } else if (e.key.toLowerCase() === 'm') {
+          cycleMode();
+        } else if (e.key.toLowerCase() === 's') {
+          toggleSound();
+        }
+      });
+
+      // keep canvas crisp and cheap
+      function boot() {
+        resize();
+        updateUI();
+        bestEl.textContent = best.toString();
+        setStatus('Idle');
+        drawFrame();
+        title.textContent = 'Ready to train?';
+        desc.textContent = 'Hit targets as quickly and accurately as possible. Headshot-style bonus zones, combo scoring, increasing difficulty, and clean performance for low-spec machines.';
+        overlay.classList.remove('hidden');
+      }
+
+      boot();
+    })();
+  </script>
+</body>
+</html>
