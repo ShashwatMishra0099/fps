@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMFORGE — CS2 Pro Aim Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;background:#080a0d;}
+body{color:#ddd;font-family:'Rajdhani',sans-serif;user-select:none;}
+canvas{display:block;width:100%;height:100%;cursor:none;}
+
+/* MENU */
+#menu{position:fixed;inset:0;background:radial-gradient(ellipse at 30% 60%,#0d1520 0%,#080a0d 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;cursor:default;}
+.menu-logo{font-size:clamp(44px,8vw,76px);font-weight:700;letter-spacing:10px;color:#ff5c1a;text-shadow:0 0 50px rgba(255,92,26,.4);margin-bottom:5px;line-height:1;}
+.menu-sub{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:6px;color:#3a3a3a;margin-bottom:48px;}
+.section-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:#303030;letter-spacing:4px;margin-bottom:12px;text-align:center;}
+.mode-row{display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap;justify-content:center;}
+.mode-card{width:152px;padding:18px 14px 14px;border:1px solid #191c22;background:rgba(255,255,255,.018);cursor:pointer;transition:.15s;position:relative;overflow:hidden;}
+.mode-card:hover,.mode-card.active{border-color:#ff5c1a;}
+.mode-card.active::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:#ff5c1a;}
+.mode-icon{font-size:24px;margin-bottom:8px;}
+.mode-name{font-size:16px;font-weight:700;color:#fff;margin-bottom:3px;letter-spacing:1px;}
+.mode-desc{font-size:10px;color:#3a3a3a;font-family:'Share Tech Mono',monospace;line-height:1.5;}
+.lvl-row{display:flex;gap:8px;margin-bottom:28px;}
+.lvl-btn{width:44px;height:44px;border:1px solid #191c22;background:transparent;color:#444;font-family:'Rajdhani';font-size:15px;font-weight:700;cursor:pointer;transition:.15s;}
+.lvl-btn:hover,.lvl-btn.active{border-color:#ff5c1a;color:#ff5c1a;}
+.lvl-btn.active{background:rgba(255,92,26,.1);}
+
+/* Sensitivity + Quality row */
+.settings-row{display:flex;gap:28px;align-items:flex-end;margin-bottom:36px;flex-wrap:wrap;justify-content:center;}
+.setting-group{display:flex;flex-direction:column;gap:7px;min-width:200px;}
+.setting-group label{font-family:'Share Tech Mono',monospace;font-size:9px;color:#303030;letter-spacing:4px;display:flex;justify-content:space-between;}
+.setting-group label span{color:#ff5c1a;}
+input[type=range]{width:100%;-webkit-appearance:none;height:2px;background:rgba(255,92,26,.25);outline:none;border-radius:0;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#ff5c1a;cursor:pointer;border-radius:0;}
+.qual-row{display:flex;gap:6px;}
+.qual-btn{flex:1;padding:8px 0;border:1px solid #191c22;background:transparent;color:#444;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:.15s;text-align:center;}
+.qual-btn:hover,.qual-btn.active{border-color:#ff5c1a;color:#ff5c1a;}
+
+.play-btn{padding:14px 80px;background:#ff5c1a;border:none;color:#000;font-family:'Rajdhani';font-size:18px;font-weight:700;letter-spacing:5px;cursor:pointer;transition:.15s;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);}
+.play-btn:hover{background:#ff7a3a;}
+.menu-footer{position:absolute;bottom:28px;display:flex;gap:60px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#222;text-align:center;}
+.footer-val{font-size:20px;color:#ff5c1a;font-family:'Rajdhani';font-weight:700;display:block;margin-bottom:3px;}
+
+/* CLICK-TO-START */
+#click-ov{position:fixed;inset:0;background:rgba(0,0,0,.80);z-index:80;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;cursor:pointer;}
+#click-ov.vis{display:flex;}
+.co-big{font-family:'Share Tech Mono',monospace;font-size:13px;color:#ff5c1a;letter-spacing:6px;animation:blink 1.1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.co-sub{font-size:11px;color:#383838;font-family:'Share Tech Mono',monospace;letter-spacing:3px;text-align:center;line-height:2.4;}
+
+/* PAUSE */
+#pause-ov{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:80;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+#pause-ov.vis{display:flex;}
+.po-lbl{font-family:'Share Tech Mono',monospace;font-size:12px;color:#ff5c1a;letter-spacing:6px;}
+.po-btn{padding:11px 28px;border:1px solid #ff5c1a;color:#ff5c1a;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:5px;cursor:pointer;background:transparent;margin-top:6px;}
+
+/* IN-GAME SENSITIVITY (small corner widget) */
+#sens-widget{position:fixed;bottom:22px;left:24px;z-index:30;display:none;flex-direction:column;gap:5px;}
+#sens-widget.vis{display:flex;}
+.sw-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:#2a2a2a;letter-spacing:3px;display:flex;justify-content:space-between;}
+.sw-lbl span{color:#ff5c1a;}
+#sens-ingame{width:130px;}
+
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;display:none;}
+.timer-wrap{position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.04);}
+#timer-bar{height:100%;width:100%;background:#ff5c1a;box-shadow:0 0 8px #ff5c1a;}
+.lvl-tag{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:10px;color:#ff5c1a;letter-spacing:4px;background:rgba(0,0,0,.7);border:1px solid rgba(255,92,26,.2);padding:5px 20px;white-space:nowrap;}
+.hud-corners{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:16px 24px;}
+.hud-box{background:rgba(0,0,0,.6);border:1px solid rgba(255,92,26,.15);padding:9px 16px;min-width:100px;}
+.hud-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:#333;letter-spacing:3px;margin-bottom:2px;}
+.hud-val{font-size:28px;font-weight:700;color:#fff;line-height:1;}
+.hud-val.or{color:#ff5c1a;}.hud-val.gn{color:#00ffaa;}
+.ammo-wrap{position:absolute;bottom:24px;right:32px;text-align:right;pointer-events:none;}
+.ammo-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:#2a2a2a;letter-spacing:3px;margin-bottom:1px;}
+.ammo-num{font-size:48px;font-weight:700;color:#fff;line-height:1;}
+.ammo-res{font-size:18px;color:#333;margin-left:4px;}
+#kf{position:absolute;top:82px;right:24px;pointer-events:none;}
+.kf-row{background:rgba(0,0,0,.75);border-left:2px solid #ff5c1a;padding:4px 10px;margin-bottom:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#00ffaa;animation:kfFade 2s forwards;}
+@keyframes kfFade{0%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translateX(12px)}}
+#streak-el{position:absolute;top:42%;left:50%;transform:translateX(-50%);font-size:34px;font-weight:700;color:#ff5c1a;text-shadow:0 0 20px rgba(255,92,26,.55);opacity:0;pointer-events:none;font-family:'Share Tech Mono',monospace;transition:opacity .2s;white-space:nowrap;}
+
+/* Crosshair */
+#xhair{position:fixed;pointer-events:none;z-index:20;display:none;transform:translate(-50%,-50%);width:24px;height:24px;}
+.xd{position:absolute;top:50%;left:50%;width:3px;height:3px;background:#00ffaa;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 5px #00ffaa;}
+.xl{position:absolute;background:#00ffaa;}
+.xt{width:1.5px;height:9px;top:-13px;left:50%;transform:translateX(-50%);}
+.xb{width:1.5px;height:9px;bottom:-13px;left:50%;transform:translateX(-50%);}
+.xlft{height:1.5px;width:9px;left:-13px;top:50%;transform:translateY(-50%);}
+.xrt{height:1.5px;width:9px;right:-13px;top:50%;transform:translateY(-50%);}
+/* Hitmarker */
+#hm{position:fixed;transform:translate(-50%,-50%);width:32px;height:32px;opacity:0;pointer-events:none;z-index:21;}
+.hml{position:absolute;width:9px;height:2px;background:#fff;}
+.tl{top:6px;left:6px;transform:rotate(45deg);}
+.tr{top:6px;right:6px;transform:rotate(-45deg);}
+.bl{bottom:6px;left:6px;transform:rotate(-45deg);}
+.br{bottom:6px;right:6px;transform:rotate(45deg);}
+#flash{position:fixed;inset:0;background:radial-gradient(ellipse at 75% 75%,rgba(255,180,60,.1) 0%,transparent 55%);pointer-events:none;z-index:5;opacity:0;}
+#reload-bar-wrap{position:absolute;bottom:80px;right:32px;display:none;}
+.rl-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:#444;letter-spacing:3px;margin-bottom:3px;text-align:right;}
+#reload-bar{width:150px;height:2px;background:rgba(255,255,255,.08);}
+#reload-fill{height:100%;width:0%;background:#ff5c1a;box-shadow:0 0 5px #ff5c1a;transition:width linear;}
+
+/* FPS counter */
+#fps{position:fixed;top:8px;right:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#222;z-index:50;pointer-events:none;}
+
+/* RESULTS */
+#results{display:none;position:fixed;inset:0;background:rgba(5,7,10,.94);z-index:200;align-items:center;justify-content:center;flex-direction:column;cursor:default;}
+.res-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:#282828;letter-spacing:8px;margin-bottom:10px;}
+.res-score{font-size:90px;font-weight:700;color:#ff5c1a;text-shadow:0 0 50px rgba(255,92,26,.3);margin-bottom:6px;line-height:1;}
+.rank{font-size:48px;font-weight:700;letter-spacing:5px;margin-bottom:32px;}
+.rank.S{color:#ffd700;text-shadow:0 0 24px rgba(255,215,0,.45);}
+.rank.A{color:#00ffaa;}.rank.B{color:#4499ff;}.rank.C{color:#666;}
+.res-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;width:560px;margin-bottom:40px;}
+.rc{background:rgba(255,255,255,.022);padding:18px;text-align:center;}
+.rc-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:#282828;letter-spacing:3px;margin-bottom:5px;}
+.rc-val{font-size:28px;font-weight:700;color:#fff;}
+.rc-val.gn{color:#00ffaa;}.rc-val.or{color:#ff5c1a;}
+.res-btns{display:flex;gap:12px;}
+.rbtn{padding:12px 36px;border:1px solid;font-family:'Rajdhani';font-size:14px;font-weight:600;letter-spacing:4px;cursor:pointer;background:transparent;transition:.15s;}
+.rbtn-r{border-color:#ff5c1a;color:#ff5c1a;}.rbtn-r:hover{background:rgba(255,92,26,.08);}
+.rbtn-m{border-color:#222;color:#383838;}.rbtn-m:hover{border-color:#555;color:#888;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 62%,rgba(0,0,0,.5) 100%);pointer-events:none;z-index:999;}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div id="fps"></div>
+
+<div id="hud">
+  <div class="timer-wrap"><div id="timer-bar"></div></div>
+  <div class="lvl-tag" id="lvl-tag">LEVEL 1 — RECRUIT</div>
+  <div class="hud-corners">
+    <div class="hud-box"><div class="hud-lbl">SCORE</div><div class="hud-val or" id="hud-score">0</div></div>
+    <div class="hud-box" style="text-align:center"><div class="hud-lbl">TIME</div><div class="hud-val" id="hud-time">30</div></div>
+    <div class="hud-box" style="text-align:right"><div class="hud-lbl">ACCURACY</div><div class="hud-val gn" id="hud-acc">–%</div></div>
+  </div>
+  <div id="streak-el"></div>
+  <div id="kf"></div>
+  <div class="ammo-wrap">
+    <div class="ammo-lbl">AK-47</div>
+    <div><span class="ammo-num" id="hud-ammo">30</span><span class="ammo-res">/ <span id="hud-reserve">90</span></span></div>
+  </div>
+  <div id="reload-bar-wrap"><div class="rl-lbl">RELOADING</div><div id="reload-bar"><div id="reload-fill"></div></div></div>
+</div>
+
+<div id="xhair"><div class="xd"></div><div class="xl xt"></div><div class="xl xb"></div><div class="xl xlft"></div><div class="xl xrt"></div></div>
+<div id="hm"><div class="hml tl"></div><div class="hml tr"></div><div class="hml bl"></div><div class="hml br"></div></div>
+<div id="flash"></div>
+
+<!-- In-game sensitivity widget -->
+<div id="sens-widget">
+  <div class="sw-lbl">SENSITIVITY <span id="sens-val-live">5.0</span></div>
+  <input type="range" id="sens-ingame" min="1" max="20" step="0.5" value="5">
+</div>
+
+<div id="click-ov">
+  <div class="co-big">▶ CLICK TO START</div>
+  <div class="co-sub">MOVE MOUSE = AIM &nbsp;·&nbsp; LEFT CLICK = SHOOT<br>R = RELOAD &nbsp;·&nbsp; ESC = MENU</div>
+</div>
+
+<div id="pause-ov">
+  <div class="po-lbl">— PAUSED —</div>
+  <button class="po-btn" id="resume-btn">CLICK HERE TO RESUME</button>
+</div>
+
+<!-- MENU -->
+<div id="menu">
+  <div class="menu-logo">AIMFORGE</div>
+  <div class="menu-sub">CS2 PRO AIM TRAINER · AK-47</div>
+
+  <div class="section-label">GAME MODE</div>
+  <div class="mode-row">
+    <div class="mode-card active" data-mode="flick"><div class="mode-icon">⚡</div><div class="mode-name">FLICK</div><div class="mode-desc">Static targets<br>Quick reaction</div></div>
+    <div class="mode-card" data-mode="tracking"><div class="mode-icon">🎯</div><div class="mode-name">TRACKING</div><div class="mode-desc">Moving targets<br>Smooth aim</div></div>
+    <div class="mode-card" data-mode="precision"><div class="mode-icon">🔬</div><div class="mode-name">PRECISION</div><div class="mode-desc">Small targets<br>Micro control</div></div>
+  </div>
+
+  <div class="section-label">DIFFICULTY</div>
+  <div class="lvl-row">
+    <button class="lvl-btn active" data-lv="0">1</button>
+    <button class="lvl-btn" data-lv="1">2</button>
+    <button class="lvl-btn" data-lv="2">3</button>
+    <button class="lvl-btn" data-lv="3">4</button>
+    <button class="lvl-btn" data-lv="4">5</button>
+  </div>
+
+  <div class="settings-row">
+    <div class="setting-group">
+      <label>SENSITIVITY <span id="sens-disp">5.0</span></label>
+      <input type="range" id="sens-slider" min="1" max="20" step="0.5" value="5">
+    </div>
+    <div class="setting-group">
+      <label>QUALITY</label>
+      <div class="qual-row">
+        <button class="qual-btn active" data-q="low">LOW</button>
+        <button class="qual-btn" data-q="mid">MED</button>
+        <button class="qual-btn" data-q="high">HIGH</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="play-btn" id="play-btn">▶ &nbsp;PLAY</button>
+
+  <div class="menu-footer">
+    <div><span class="footer-val" id="stat-score">0</span>BEST SCORE</div>
+    <div><span class="footer-val" id="stat-acc">0%</span>BEST ACC</div>
+    <div><span class="footer-val" id="stat-sess">0</span>SESSIONS</div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div id="results">
+  <div class="res-lbl">ROUND COMPLETE</div>
+  <div class="res-score" id="res-score">0</div>
+  <div class="rank" id="res-rank">B</div>
+  <div class="res-grid">
+    <div class="rc"><div class="rc-lbl">HITS</div><div class="rc-val gn" id="r-hits">0</div></div>
+    <div class="rc"><div class="rc-lbl">MISSES</div><div class="rc-val" id="r-miss">0</div></div>
+    <div class="rc"><div class="rc-lbl">ACCURACY</div><div class="rc-val or" id="r-acc">0%</div></div>
+    <div class="rc"><div class="rc-lbl">BEST STREAK</div><div class="rc-val" id="r-streak">0</div></div>
+    <div class="rc"><div class="rc-lbl">AVG REACT</div><div class="rc-val" id="r-react">0ms</div></div>
+    <div class="rc"><div class="rc-lbl">TARGETS/MIN</div><div class="rc-val" id="r-tpm">0</div></div>
+  </div>
+  <div class="res-btns">
+    <button class="rbtn rbtn-r" id="retry-btn">↺ &nbsp;RETRY</button>
+    <button class="rbtn rbtn-m" id="menu-btn">◀ &nbsp;MENU</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+//  AIMFORGE — Performance-optimised build
+//  ✓ Inverted Y fixed (up=up, down=down)
+//  ✓ Low-spec optimisations
+//  ✓ Sensitivity slider
+// ═══════════════════════════════════════════════
+
+// ── Stats ──────────────────────────────────────
+let SAVED;
+try{ SAVED=JSON.parse(localStorage.getItem('af3')||'{"bestScore":0,"bestAcc":0,"sessions":0}'); }
+catch(e){ SAVED={bestScore:0,bestAcc:0,sessions:0}; }
+
+// ── Quality presets ────────────────────────────
+const QUALITY={
+  low: { pr:1,   fog:[18,38], lights:false, sphereSeg:6,  boxSeg:1 },
+  mid: { pr:1,   fog:[22,48], lights:true,  sphereSeg:8,  boxSeg:1 },
+  high:{ pr:1.5, fog:[28,55], lights:true,  sphereSeg:10, boxSeg:1 },
+};
+let quality='low'; // default low for best perf
+
+// ── Sensitivity ────────────────────────────────
+let sensitivity=5; // 1–20, maps to angle multiplier
+
+// ── Levels ─────────────────────────────────────
+const LEVELS=[
+  {name:'RECRUIT',  r:.32,spd:0,   cnt:6, time:30,pts:100,maxT:2},
+  {name:'REGULAR',  r:.27,spd:1.6, cnt:8, time:30,pts:150,maxT:3},
+  {name:'HARDENED', r:.22,spd:2.8, cnt:10,time:28,pts:220,maxT:3},
+  {name:'VETERAN',  r:.18,spd:4.0, cnt:13,time:25,pts:320,maxT:4},
+  {name:'PRO',      r:.14,spd:5.5, cnt:16,time:20,pts:550,maxT:5},
+];
+
+// ── Game state ─────────────────────────────────
+const G={
+  mode:'flick',level:0,running:false,active:false,paused:false,
+  score:0,hits:0,misses:0,streak:0,bestStreak:0,
+  ammo:30,reserve:90,reloading:false,reloadTmr:null,
+  timeLeft:30,reactTimes:[],_streakTmr:null,_hmTmr:null
+};
+
+// ── Mouse aiming — NO pointer lock ─────────────
+// Maps cursor position on screen → camera yaw/pitch.
+// sensitivity slider controls how wide the angle range is.
+const xhairEl=document.getElementById('xhair');
+const hmEl=document.getElementById('hm');
+let mouseX=window.innerWidth/2, mouseY=window.innerHeight/2;
+let yaw=0, pitch=0;
+// Smoothing buffers for silky camera (lerp)
+let targetYaw=0, targetPitch=0;
+
+document.addEventListener('mousemove',e=>{
+  mouseX=e.clientX; mouseY=e.clientY;
+  // crosshair + hitmarker follow real cursor
+  xhairEl.style.left=mouseX+'px';
+  xhairEl.style.top =mouseY+'px';
+  hmEl.style.left   =mouseX+'px';
+  hmEl.style.top    =mouseY+'px';
+  if(!G.running||!G.active||G.paused) return;
+  const cx=window.innerWidth/2, cy=window.innerHeight/2;
+  // sensitivity: 1 = narrow range, 20 = very wide
+  const hRange = (sensitivity/20) * Math.PI * 0.72;   // max horizontal angle
+  const vRange = (sensitivity/20) * Math.PI * 0.44;   // max vertical angle
+  // X: left of center → negative yaw (look left) ✓
+  targetYaw  = -((mouseX-cx)/cx) * hRange;
+  // Y: ABOVE center → negative pitch (look UP) ✓ (fixed direction)
+  targetPitch = -((mouseY-cy)/cy) * vRange;
+  targetPitch = Math.max(-Math.PI/2.6, Math.min(Math.PI/2.6, targetPitch));
+});
+
+document.addEventListener('mouseleave',()=>{
+  if(G.running&&G.active){ G.paused=true; document.getElementById('pause-ov').classList.add('vis'); }
+});
+document.addEventListener('mouseenter',()=>{
+  if(G.running&&G.paused){ G.paused=false; document.getElementById('pause-ov').classList.remove('vis'); }
+});
+
+// ── THREE Setup ────────────────────────────────
+const canvas=document.getElementById('canvas');
+const renderer=new THREE.WebGLRenderer({
+  canvas,
+  antialias:false,          // OFF for perf
+  powerPreference:'high-performance',
+  precision:'mediump',      // medium precision shaders = faster
+  stencil:false,            // not needed
+  depth:true
+});
+renderer.setPixelRatio(1); // start at 1 always
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=false;
+renderer.autoClear=false;
+
+// Main scene
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x14171d);
+scene.fog=new THREE.Fog(0x14171d,18,38); // tight fog = less draw calls
+
+// Camera
+const camera=new THREE.PerspectiveCamera(74,innerWidth/innerHeight,0.1,60);
+camera.position.set(0,1.68,0);
+camera.rotation.order='YXZ';
+
+// Weapon scene (separate depth layer)
+const wScene=new THREE.Scene();
+const wCam=new THREE.PerspectiveCamera(54,innerWidth/innerHeight,0.01,10);
+wScene.add(new THREE.AmbientLight(0xffffff,0.7));
+const wDL=new THREE.DirectionalLight(0xfff0dd,0.9);
+wDL.position.set(1.5,2,2); wScene.add(wDL);
+
+// ── Shared material cache (reuse = less GPU state changes) ──
+const MAT={
+  floor: new THREE.MeshBasicMaterial({color:0x1a1e25}),
+  wall:  new THREE.MeshBasicMaterial({color:0x1e2229}),
+  ceil:  new THREE.MeshBasicMaterial({color:0x181c21}),
+  grid:  new THREE.MeshBasicMaterial({color:0x262a32}),
+  post:  new THREE.MeshBasicMaterial({color:0x282d36}),
+  accent:new THREE.MeshBasicMaterial({color:0xff5c1a}),
+  box1:  new THREE.MeshBasicMaterial({color:0x292e3a}),
+  box2:  new THREE.MeshBasicMaterial({color:0x1f2228}),
+  light: new THREE.MeshBasicMaterial({color:0xfff8d0}),
+  stand: new THREE.MeshBasicMaterial({color:0x303540}),
+};
+
+// ── Scene lighting ─────────────────────────────
+scene.add(new THREE.AmbientLight(0x99aacc,0.6));
+// Only add dir light — point lights are expensive
+const sun=new THREE.DirectionalLight(0xffeedd,0.7);
+sun.position.set(4,10,4); scene.add(sun);
+
+// ── Map (optimised: merged geometry, BasicMaterial) ──
+function buildMap(){
+  const add=(geo,mat,x=0,y=0,z=0,rx=0,ry=0)=>{
+    const m=new THREE.Mesh(geo,mat);
+    m.position.set(x,y,z);
+    if(rx) m.rotation.x=rx;
+    if(ry) m.rotation.y=ry;
+    scene.add(m);
+  };
+  // Floor
+  add(new THREE.PlaneGeometry(30,60),MAT.floor,0,0,-20,-Math.PI/2);
+  // Walls
+  add(new THREE.PlaneGeometry(30,9),MAT.wall,0,4.5,-50);             // back
+  add(new THREE.PlaneGeometry(60,9),MAT.wall,-15,4.5,-20, 0,Math.PI/2); // left
+  add(new THREE.PlaneGeometry(60,9),MAT.wall, 15,4.5,-20, 0,-Math.PI/2);// right
+  // Ceiling
+  add(new THREE.PlaneGeometry(30,60),MAT.ceil,0,9,-20,Math.PI/2);
+  // Floor grid lines (x)
+  for(let z=0;z>=-40;z-=6){
+    add(new THREE.PlaneGeometry(30,.04),MAT.grid,0,.001,z,-Math.PI/2);
+  }
+  for(let x=-12;x<=12;x+=6){
+    add(new THREE.PlaneGeometry(.04,60),MAT.grid,x,.001,-20,-Math.PI/2);
+  }
+  // Accent strips on back wall
+  add(new THREE.BoxGeometry(30,.05,.04),MAT.accent,0,0.8,-49.96);
+  add(new THREE.BoxGeometry(30,.05,.04),MAT.accent,0,2.0,-49.96);
+  // Ceiling strips (light)
+  for(let z=-6;z>=-42;z-=12){
+    add(new THREE.BoxGeometry(.5,.03,1.6),MAT.light,0,8.96,z);
+  }
+  // Posts
+  for(let z=-4;z>=-40;z-=8) for(const x of[-14.5,14.5]){
+    add(new THREE.BoxGeometry(.06,3,.06),MAT.post,x,1.5,z);
+  }
+  // Crates
+  const cr=[[-11,.75,-26],[11,.75,-30],[-10,.75,-36],[11,.75,-20],[-12,.75,-42]];
+  cr.forEach(([x,y,z],i)=>{
+    const s=.85+Math.random()*.4;
+    add(new THREE.BoxGeometry(s,s,s),i%2===0?MAT.box1:MAT.box2,x,y,z);
+  });
+}
+buildMap();
+
+// ── AK-47 viewmodel (optimised: fewer parts) ──
+let wGrp,mFlashLight;
+const WP={x:.19,y:-.23,z:-.30};
+let wRecoilY=0,wRecoilX=0;
+
+(function buildAK(){
+  wGrp=new THREE.Group();
+  const M=(color,em=0,ei=0)=>new THREE.MeshLambertMaterial({color,emissive:em,emissiveIntensity:ei});
+  const metal=M(0x1e1e1e),metalMid=M(0x2c2c2c),chrome=M(0x444),
+        woodDark=M(0x4a2008),woodMid=M(0x7a3512),woodLight=M(0x9b4a1e);
+  const B=(w,h,d,mat,x=0,y=0,z=0,rx=0)=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+    m.position.set(x,y,z); if(rx) m.rotation.x=rx; wGrp.add(m);
+  };
+  const CYL=(rt,rb,h,seg,mat,x=0,y=0,z=0,rx=0)=>{
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat);
+    m.position.set(x,y,z); if(rx) m.rotation.x=rx; wGrp.add(m);
+  };
+  // Receiver
+  B(.058,.068,.32,metal); B(.028,.011,.32,metalMid,0,.041,0);
+  // Barrel
+  CYL(.010,.010,.44,6,chrome,0,.009,-.38,Math.PI/2);
+  CYL(.014,.014,.18,6,metal,0,.009,-.28,Math.PI/2);
+  // Gas tube
+  CYL(.005,.005,.22,5,metalMid,0,.036,-.22,Math.PI/2);
+  // Handguard
+  B(.050,.036,.22,woodMid,0,-.009,-.20); B(.040,.020,.22,woodDark,0,.027,-.20);
+  // Front sight + rear sight
+  B(.018,.044,.018,metal,0,.037,-.20); B(.040,.022,.018,metal,0,.042,.058);
+  // Muzzle brake
+  CYL(.016,.016,.044,6,chrome,0,.009,-.60,Math.PI/2);
+  CYL(.020,.020,.009,6,metalMid,0,.009,-.578,Math.PI/2);
+  CYL(.020,.020,.009,6,metalMid,0,.009,-.622,Math.PI/2);
+  // Magazine
+  B(.028,.118,.048,metalMid,0,-.090,.010,-.18);
+  B(.032,.018,.052,metal,0,-.028,.010);
+  // Grip
+  B(.028,.086,.050,woodMid,0,-.078,.092,.34);
+  // Stock
+  B(.040,.048,.22,woodMid,0,-.016,.21);
+  B(.040,.040,.22,woodLight,0,-.013,.21);
+  B(.040,.058,.020,metal,0,-.012,.326);
+  // Flash light
+  mFlashLight=new THREE.PointLight(0xff8800,0,2);
+  mFlashLight.position.set(0,.009,-.62); wGrp.add(mFlashLight);
+  wGrp.position.set(WP.x,WP.y,WP.z); wGrp.rotation.y=.05;
+  wScene.add(wGrp);
+})();
+
+// ── Targets ───────────────────────────────────
+const targets=[];
+const ZONES=[
+  {x:[-7,7],  y:[1.1,2.1],z:[-6,-12]},
+  {x:[-10,10],y:[1.0,2.3],z:[-13,-21]},
+  {x:[-11,11],y:[1.0,2.2],z:[-22,-32]},
+];
+const rnd=(a,b)=>a+(b-a)*Math.random();
+// Reuse target geometries per level (shared geo = less memory)
+const tgtGeoCache={};
+function getTgtGeo(r){
+  const key=r.toFixed(2);
+  if(!tgtGeoCache[key]){
+    const Q=QUALITY[quality];
+    tgtGeoCache[key]=new THREE.SphereGeometry(r,Q.sphereSeg,Q.sphereSeg-2);
+  }
+  return tgtGeoCache[key];
+}
+// Shared target material (just one, swap color via .color)
+const TGT_MAT=new THREE.MeshLambertMaterial({color:0xff3311,emissive:0xcc1100,emissiveIntensity:.35});
+
+function spawnTarget(){
+  const lvl=LEVELS[G.level];
+  const max=lvl.maxT+(G.mode==='precision'?-1:0);
+  if(targets.length>=max) return;
+  let zi=G.level<=1?0:G.level<=3?(Math.random()<.55?0:1):Math.floor(Math.random()*3);
+  const Z=ZONES[zi];
+  const r=lvl.r*(G.mode==='precision'?.65:1.0);
+  // Clone material so we can per-target emissive
+  const mat=TGT_MAT.clone();
+  const mesh=new THREE.Mesh(getTgtGeo(r),mat);
+  mesh.position.set(rnd(Z.x[0],Z.x[1]),rnd(Z.y[0],Z.y[1]),rnd(Z.z[0],Z.z[1]));
+  // Separate clamping
+  for(const t of targets){
+    if(mesh.position.distanceTo(t.position)<r*3.5) mesh.position.x+=rnd(-1.5,1.5);
+  }
+  // Stand
+  let standRef=null;
+  if(G.mode!=='tracking'){
+    const sh=mesh.position.y-r;
+    const st=new THREE.Mesh(
+      new THREE.CylinderGeometry(.022,.022,Math.max(.01,sh),5),
+      MAT.stand
+    );
+    st.position.set(mesh.position.x,sh/2,mesh.position.z);
+    scene.add(st); standRef=st;
+  }
+  // Movement
+  let spd=0,dir=1,rangeX=0,sY=mesh.position.y,sX=mesh.position.x;
+  if(G.mode==='tracking'||G.level>=2){
+    spd=lvl.spd*rnd(.4,.9); rangeX=rnd(1.4,3.5); dir=Math.random()<.5?1:-1;
+  }
+  mesh.scale.set(.01,.01,.01);
+  mesh.userData={spawnT:performance.now(),spd,dir,rangeX,sX,sY,
+    spawning:true,spawnE:0,
+    vSpd:(G.mode==='tracking'&&G.level>=3)?(Math.random()-.5)*0.55:0,
+    stand:standRef};
+  scene.add(mesh); targets.push(mesh);
+}
+
+function removeTarget(t,hit){
+  const i=targets.indexOf(t);
+  if(i!==-1) targets.splice(i,1);
+  if(t.userData.stand) scene.remove(t.userData.stand);
+  if(hit){
+    t.material.color.set(0xffffff); t.material.emissive.set(0xffffff);
+    setTimeout(()=>scene.remove(t),60);
+  } else scene.remove(t);
+}
+
+// ── Audio ──────────────────────────────────────
+let actx;
+function initAudio(){ if(!actx) actx=new(window.AudioContext||window.webkitAudioContext)(); }
+function noise(freq,bw,dur,vol,t,type='bandpass'){
+  const sz=Math.floor(actx.sampleRate*dur);
+  const buf=actx.createBuffer(1,sz,actx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<sz;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/(sz*.18));
+  const src=actx.createBufferSource(); src.buffer=buf;
+  const f=actx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=bw;
+  const g=actx.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  src.connect(f); f.connect(g); g.connect(actx.destination); src.start(t);
+}
+function playShot(){
+  if(!actx) return; const t=actx.currentTime;
+  const o=actx.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(100,t); o.frequency.exponentialRampToValueAtTime(48,t+.10);
+  const gB=actx.createGain(); gB.gain.setValueAtTime(.6,t); gB.gain.exponentialRampToValueAtTime(.001,t+.18);
+  const fB=actx.createBiquadFilter(); fB.type='lowpass'; fB.frequency.value=360;
+  o.connect(fB); fB.connect(gB); gB.connect(actx.destination); o.start(t); o.stop(t+.2);
+  noise(1500,1.0,.13,.65,t,'bandpass'); noise(5000,.5,.05,.32,t+.002,'highpass');
+}
+function playHit(){
+  if(!actx) return; const t=actx.currentTime;
+  const o=actx.createOscillator(); o.type='triangle';
+  o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(440,t+.08);
+  const g=actx.createGain(); g.gain.setValueAtTime(.25,t); g.gain.exponentialRampToValueAtTime(.001,t+.1);
+  o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+.11);
+}
+function playReload(){
+  if(!actx) return; const t=actx.currentTime;
+  [0,.52,1.28,1.68].forEach(d=>{
+    const sz=Math.floor(actx.sampleRate*.05);
+    const b=actx.createBuffer(1,sz,actx.sampleRate);
+    const dt=b.getChannelData(0);
+    for(let j=0;j<sz;j++) dt[j]=(Math.random()*2-1)*Math.exp(-j/(sz*.14));
+    const s=actx.createBufferSource(); s.buffer=b;
+    const f=actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=d<1?680:1050; f.Q.value=1.2;
+    const g=actx.createGain(); g.gain.value=.20;
+    s.connect(f); f.connect(g); g.connect(actx.destination); s.start(t+d);
+  });
+}
+function playDone(){
+  if(!actx) return; const t=actx.currentTime;
+  [440,554,659,880].forEach((f,i)=>{
+    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=actx.createGain(); g.gain.setValueAtTime(0,t+i*.1);
+    g.gain.linearRampToValueAtTime(.16,t+i*.1+.02);
+    g.gain.exponentialRampToValueAtTime(.001,t+i*.1+.26);
+    o.connect(g); g.connect(actx.destination); o.start(t+i*.1); o.stop(t+i*.1+.28);
+  });
+}
+function playDry(){
+  if(!actx) return; noise(2800,.8,.016,.10,actx.currentTime,'highpass');
+}
+
+// ── Shooting (raycaster) ───────────────────────
+const ray=new THREE.Raycaster();
+function shoot(cx,cy){
+  if(!G.running||!G.active||G.paused||G.reloading) return;
+  if(G.ammo<=0){ playDry(); startReload(); return; }
+  G.ammo--;
+  playShot(); doRecoil(); doFlash(); setHM(false); refreshAmmo();
+  const ndc=new THREE.Vector2((cx/innerWidth)*2-1,-(cy/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(targets);
+  if(hits.length>0){
+    const t=hits[0].object, rt=performance.now()-t.userData.spawnT;
+    G.hits++; G.streak++;
+    if(G.streak>G.bestStreak) G.bestStreak=G.streak;
+    G.reactTimes.push(rt);
+    const lvl=LEVELS[G.level];
+    const pts=lvl.pts
+      +Math.floor(Math.abs(t.position.z)/5)*12
+      +Math.max(0,Math.floor((2800-rt)/100)*8)
+      +(G.streak>=5?Math.min(G.streak*18,220):0);
+    G.score+=pts;
+    playHit(); setHM(true);
+    addKF('+'+pts+(G.streak>=3?' ×'+G.streak:''));
+    showStreak(G.streak);
+    removeTarget(t,true);
+    setTimeout(spawnTarget,50);
+  } else {
+    G.misses++; G.streak=0;
+  }
+  refreshScore(); refreshAcc();
+  if(G.ammo<=0&&G.reserve>0) setTimeout(startReload,260);
+}
+
+canvas.addEventListener('mousedown',e=>{
+  if(e.button!==0||!G.running||!G.active) return;
+  e.preventDefault(); shoot(e.clientX,e.clientY);
+});
+document.getElementById('click-ov').addEventListener('click',()=>{
+  G.active=true; document.getElementById('click-ov').classList.remove('vis');
+});
+document.addEventListener('keydown',e=>{
+  if(!G.running) return;
+  if(e.code==='KeyR'&&!G.reloading&&G.ammo<30) startReload();
+  if(e.code==='Escape'){ stopGame(); showMenu(); }
+});
+
+// ── FX ────────────────────────────────────────
+function doRecoil(){ wRecoilY=.04; wRecoilX=(Math.random()-.5)*.011; }
+function doFlash(){
+  const fl=document.getElementById('flash');
+  fl.style.opacity='1'; setTimeout(()=>fl.style.opacity='0',38);
+  if(mFlashLight){ mFlashLight.intensity=3; setTimeout(()=>mFlashLight.intensity=0,38); }
+}
+function setHM(hit){
+  const c=hit?'#ff2222':'#ffffff';
+  hmEl.querySelectorAll('.hml').forEach(l=>l.style.background=c);
+  hmEl.style.opacity='1';
+  clearTimeout(G._hmTmr);
+  G._hmTmr=setTimeout(()=>hmEl.style.opacity='0',100);
+}
+function showStreak(s){
+  if(s<3) return;
+  const msgs={3:'TRIPLE! 🔥',4:'QUAD! 🔥🔥',5:'RAMPAGE! ⚡',8:'GODLIKE! 💀',10:'AIMBOT! 🤖'};
+  const m=msgs[s]||(s>10?s+'× STREAK!':null); if(!m) return;
+  const el=document.getElementById('streak-el');
+  el.textContent=m; el.style.opacity='1';
+  clearTimeout(G._streakTmr);
+  G._streakTmr=setTimeout(()=>el.style.opacity='0',1000);
+}
+function addKF(txt){
+  const el=document.createElement('div');
+  el.className='kf-row'; el.textContent=txt;
+  document.getElementById('kf').appendChild(el);
+  setTimeout(()=>el.remove(),2000);
+}
+function startReload(){
+  if(G.reloading||G.reserve<=0||G.ammo===30) return;
+  G.reloading=true; playReload();
+  const fill=document.getElementById('reload-fill'),wrap=document.getElementById('reload-bar-wrap');
+  wrap.style.display='block'; fill.style.transition='none'; fill.style.width='0%';
+  requestAnimationFrame(()=>{ fill.style.transition='width 1.85s linear'; fill.style.width='100%'; });
+  G.reloadTmr=setTimeout(()=>{
+    const take=Math.min(30-G.ammo,G.reserve);
+    G.ammo+=take; G.reserve-=take;
+    G.reloading=false; wrap.style.display='none'; refreshAmmo();
+  },1850);
+}
+
+// ── HUD ───────────────────────────────────────
+function refreshScore(){ document.getElementById('hud-score').textContent=G.score.toLocaleString(); }
+function refreshAcc(){
+  const tot=G.hits+G.misses;
+  document.getElementById('hud-acc').textContent=tot>0?Math.round(G.hits/tot*100)+'%':'–%';
+}
+function refreshAmmo(){
+  document.getElementById('hud-ammo').textContent=G.ammo;
+  document.getElementById('hud-reserve').textContent=G.reserve;
+}
+function refreshTimer(){
+  const frac=G.timeLeft/LEVELS[G.level].time;
+  document.getElementById('timer-bar').style.width=(frac*100)+'%';
+  document.getElementById('hud-time').textContent=Math.ceil(G.timeLeft);
+}
+
+// ── Camera smooth lerp ─────────────────────────
+// Lerp factor: higher = snappier (1=instant, 0=frozen)
+// We use a high value so it's responsive but not jittery
+const LERP=0.28;
+
+// ── FPS counter ────────────────────────────────
+let fpsBuf=[], fpsLast=performance.now();
+function trackFPS(){
+  const now=performance.now();
+  fpsBuf.push(1000/(now-fpsLast)); fpsLast=now;
+  if(fpsBuf.length>30) fpsBuf.shift();
+  const avg=Math.round(fpsBuf.reduce((a,b)=>a+b)/fpsBuf.length);
+  document.getElementById('fps').textContent=avg+' FPS';
+}
+
+// ── Game loop ─────────────────────────────────
+const clock=new THREE.Clock();
+let gameTimer=0,spawnAccum=0,spawnInterval=1;
+
+function startGame(){
+  initAudio();
+  const lvl=LEVELS[G.level];
+  Object.assign(G,{running:true,active:false,paused:false,
+    score:0,hits:0,misses:0,streak:0,bestStreak:0,
+    ammo:30,reserve:90,reloading:false,timeLeft:lvl.time,reactTimes:[]});
+  clearTimeout(G.reloadTmr);
+  gameTimer=lvl.time; spawnInterval=lvl.time/lvl.cnt*.55; spawnAccum=0;
+  // clear targets
+  targets.forEach(t=>{ if(t.userData.stand) scene.remove(t.userData.stand); scene.remove(t); });
+  targets.length=0;
+  // reset tgt geo cache when quality might change
+  Object.keys(tgtGeoCache).forEach(k=>delete tgtGeoCache[k]);
+  document.getElementById('kf').innerHTML='';
+  document.getElementById('reload-bar-wrap').style.display='none';
+  document.getElementById('streak-el').style.opacity='0';
+  yaw=targetYaw=0; pitch=targetPitch=0;
+  document.getElementById('lvl-tag').textContent='LEVEL '+(G.level+1)+' — '+LEVELS[G.level].name;
+  refreshScore(); refreshAcc(); refreshAmmo(); refreshTimer();
+  document.getElementById('hud').style.display='block';
+  document.getElementById('menu').style.display='none';
+  document.getElementById('results').style.display='none';
+  xhairEl.style.display='block';
+  document.getElementById('sens-widget').classList.add('vis');
+  document.getElementById('click-ov').classList.add('vis');
+  // Apply quality
+  const Q=QUALITY[quality];
+  renderer.setPixelRatio(Q.pr);
+  scene.fog.near=Q.fog[0]; scene.fog.far=Q.fog[1];
+  clock.start(); spawnTarget();
+}
+
+function stopGame(){
+  G.running=false; G.active=false; clearTimeout(G.reloadTmr);
+  targets.forEach(t=>{ if(t.userData.stand) scene.remove(t.userData.stand); scene.remove(t); });
+  targets.length=0;
+  document.getElementById('pause-ov').classList.remove('vis');
+  document.getElementById('click-ov').classList.remove('vis');
+  xhairEl.style.display='none';
+  document.getElementById('sens-widget').classList.remove('vis');
+}
+function showMenu(){
+  document.getElementById('hud').style.display='none';
+  document.getElementById('results').style.display='none';
+  document.getElementById('menu').style.display='flex';
+  refreshMenuStats();
+}
+function endGame(){
+  stopGame();
+  const tot=G.hits+G.misses, acc=tot>0?Math.round(G.hits/tot*100):0;
+  const avg=G.reactTimes.length?Math.round(G.reactTimes.reduce((a,b)=>a+b)/G.reactTimes.length):0;
+  const tpm=G.hits?Math.round(G.hits/LEVELS[G.level].time*60):0;
+  if(G.score>SAVED.bestScore) SAVED.bestScore=G.score;
+  if(acc>SAVED.bestAcc) SAVED.bestAcc=acc;
+  SAVED.sessions++;
+  try{ localStorage.setItem('af3',JSON.stringify(SAVED)); }catch(e){}
+  let rank='C'; const thr=LEVELS[G.level].pts;
+  if(acc>=90&&G.score>=thr*9) rank='S';
+  else if(acc>=75&&G.score>=thr*5) rank='A';
+  else if(acc>=55) rank='B';
+  document.getElementById('hud').style.display='none';
+  document.getElementById('results').style.display='flex';
+  document.getElementById('res-score').textContent=G.score.toLocaleString();
+  document.getElementById('r-hits').textContent=G.hits;
+  document.getElementById('r-miss').textContent=G.misses;
+  document.getElementById('r-acc').textContent=acc+'%';
+  document.getElementById('r-streak').textContent=G.bestStreak;
+  document.getElementById('r-react').textContent=avg+'ms';
+  document.getElementById('r-tpm').textContent=tpm;
+  const rk=document.getElementById('res-rank');
+  rk.textContent=rank; rk.className='rank '+rank;
+  playDone();
+}
+
+// ── Render loop ────────────────────────────────
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+  // Smooth camera lerp — feels silky even at low FPS
+  yaw  += (targetYaw   - yaw)   * LERP;
+  pitch+= (targetPitch - pitch) * LERP;
+  camera.rotation.y=yaw;
+  camera.rotation.x=pitch;
+
+  if(G.running&&G.active&&!G.paused){
+    gameTimer-=dt; G.timeLeft=Math.max(0,gameTimer); refreshTimer();
+    if(gameTimer<=0){ endGame(); return; }
+    spawnAccum+=dt;
+    if(spawnAccum>=spawnInterval){ spawnAccum=0; spawnTarget(); }
+    const now=performance.now();
+    for(const t of targets){
+      const u=t.userData;
+      if(u.spawning){
+        u.spawnE+=dt; const p=Math.min(u.spawnE/.09,1);
+        t.scale.setScalar(1-Math.pow(1-p,3)); if(p>=1) u.spawning=false;
+      }
+      if(u.spd>0){
+        t.position.x+=u.spd*u.dir*dt;
+        if(Math.abs(t.position.x-u.sX)>=u.rangeX) u.dir*=-1;
+        if(u.stand) u.stand.position.x=t.position.x;
+      }
+      if(u.vSpd!==0){
+        t.position.y+=u.vSpd*dt;
+        if(Math.abs(t.position.y-u.sY)>=0.85) u.vSpd*=-1;
+      }
+      // Cheap pulsing emissive
+      t.material.emissiveIntensity=.28+.14*Math.sin(now*.004+t.position.x);
+    }
+    // Weapon recoil recovery
+    wRecoilY*=.80; wRecoilX*=.80;
+    wGrp.position.x=WP.x+wRecoilX;
+    wGrp.position.y=WP.y+wRecoilY+(G.reloading?-.07+Math.sin(now*.004)*.01:0);
+  }
+  trackFPS();
+  renderer.clear();
+  renderer.render(scene,camera);
+  renderer.clearDepth();
+  renderer.render(wScene,wCam);
+}
+
+// ── UI bindings ────────────────────────────────
+document.querySelectorAll('.mode-card').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('active'));
+  c.classList.add('active'); G.mode=c.dataset.mode;
+}));
+document.querySelectorAll('.lvl-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.lvl-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); G.level=+b.dataset.lv;
+}));
+document.querySelectorAll('.qual-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.qual-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); quality=b.dataset.q;
+}));
+
+// Sensitivity sliders (menu + in-game stay in sync)
+const sensSlider=document.getElementById('sens-slider');
+const sensIngame=document.getElementById('sens-ingame');
+const sensDisp=document.getElementById('sens-disp');
+const sensValLive=document.getElementById('sens-val-live');
+function setSens(v){
+  sensitivity=parseFloat(v);
+  sensSlider.value=sensitivity; sensIngame.value=sensitivity;
+  sensDisp.textContent=sensitivity.toFixed(1);
+  sensValLive.textContent=sensitivity.toFixed(1);
+}
+sensSlider.addEventListener('input',e=>setSens(e.target.value));
+sensIngame.addEventListener('input',e=>setSens(e.target.value));
+
+document.getElementById('play-btn').addEventListener('click',startGame);
+document.getElementById('retry-btn').addEventListener('click',startGame);
+document.getElementById('menu-btn').addEventListener('click',()=>{ stopGame(); showMenu(); });
+document.getElementById('resume-btn').addEventListener('click',()=>{
+  G.paused=false; document.getElementById('pause-ov').classList.remove('vis');
+});
+
+function refreshMenuStats(){
+  document.getElementById('stat-score').textContent=SAVED.bestScore.toLocaleString();
+  document.getElementById('stat-acc').textContent=SAVED.bestAcc+'%';
+  document.getElementById('stat-sess').textContent=SAVED.sessions;
+}
+refreshMenuStats();
+
+window.addEventListener('resize',()=>{
+  const w=innerWidth,h=innerHeight;
+  camera.aspect=wCam.aspect=w/h;
+  camera.updateProjectionMatrix(); wCam.updateProjectionMatrix();
+  renderer.setSize(w,h);
+});
+
+animate();
+</script>
+</body>
+</html>
